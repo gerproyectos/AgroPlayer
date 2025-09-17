@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Reproductor de Campañas</title>
+  <script src="https://alcdn.msauth.net/browser/2.37.0/js/msal-browser.min.js"></script>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: black;
+      overflow: hidden;
+    }
+    #viewer {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    img, video {
+      max-width: 100vw;
+      max-height: 100vh;
+    }
+  </style>
+</head>
+<body>
+  <div id="viewer"></div>
+
+  <script>
+    const msalConfig = {
+      auth: {
+        clientId: "f7a30705-5baa-43ab-8f5e-db6c98e6ebcb",
+        authority: "https://login.microsoftonline.com/agropaisas.onmicrosoft.com",
+        redirectUri: "http://localhost"
+      }
+    };
+
+    const msalInstance = new msal.PublicClientApplication(msalConfig);
+
+    const loginRequest = {
+      scopes: ["Files.Read.All", "Sites.Read.All"]
+    };
+
+    let tokenGlobal = null;
+    let slideshowTimer = null;
+
+    async function getAccessToken() {
+      try {
+        const response = await msalInstance.loginPopup(loginRequest);
+        return response.accessToken;
+      } catch (error) {
+        console.error("Login error:", error);
+      }
+    }
+
+    async function fetchDriveItems(token) {
+      const siteId = "agropaisas.sharepoint.com,0527bf98-e7a7-47c0-9898-e8ca7c2e8af1,12050814-194d-49d7-96b5-cc2db039a498";
+      const driveId = "b!mL8nBafnwEeYmOjKfC6K8RQIBRJNGddJlrXMLbA5pJhoR4cvnojASLgEwedeeXXN";
+
+      const endpoint = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/root/children`;
+      const res = await fetch(endpoint, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      return data.value.filter(item => item['@microsoft.graph.downloadUrl']);
+    }
+
+    function startSlideshow(items) {
+      const viewer = document.getElementById("viewer");
+      let index = 0;
+      let timeout = null;
+
+      function showNext() {
+        viewer.innerHTML = "";
+        const item = items[index];
+        const url = item['@microsoft.graph.downloadUrl'];
+
+        if (item.name.match(/\.(mp4|webm)$/i)) {
+          const video = document.createElement("video");
+          video.src = url;
+          video.autoplay = true;
+          video.controls = false;
+          video.onended = () => {
+            index = (index + 1) % items.length;
+            showNext();
+          };
+          viewer.appendChild(video);
+        } else {
+          const img = document.createElement("img");
+          img.src = url;
+          viewer.appendChild(img);
+          timeout = setTimeout(() => {
+            index = (index + 1) % items.length;
+            showNext();
+          }, 5000);
+        }
+      }
+
+      showNext();
+
+      // Refrescar cada 10 minutos
+      if (slideshowTimer) clearTimeout(slideshowTimer);
+      slideshowTimer = setTimeout(refreshSlideshow, 10 * 60 * 1000);
+    }
+
+    async function refreshSlideshow() {
+      const items = await fetchDriveItems(tokenGlobal);
+      if (items.length > 0) {
+        startSlideshow(items);
+      }
+    }
+
+    async function init() {
+      tokenGlobal = await getAccessToken();
+      if (!tokenGlobal) return;
+
+      const items = await fetchDriveItems(tokenGlobal);
+      if (items.length === 0) {
+        alert("No se encontraron archivos.");
+        return;
+      }
+
+      startSlideshow(items);
+    }
+
+    init();
+  </script>
+</body>
+</html>
