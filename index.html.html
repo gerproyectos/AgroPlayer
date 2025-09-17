@@ -55,6 +55,9 @@
     }
 
 const almacenFiltro = "Almacen 3"; // Aquí defines el almacén deseado
+const siteId = "agropaisas.sharepoint.com,0527bf98-e7a7-47c0-9898-e8ca7c2e8af1,12050814-194d-49d7-96b5-cc2db039a498";
+const driveId = "b!mL8nBafnwEeYmOjKfC6K8RQIBRJNGddJlrXMLbA5pJhoR4cvnojASLgEwedeeXXN";
+
 
 async function fetchDriveItems(token) {
   const endpoint = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/root/children?$expand=listItem&select=name,@microsoft.graph.downloadUrl,listItem`;
@@ -135,6 +138,7 @@ async function fetchDriveItems(token) {
 </body>
 
 </html>
+
 
 
 
