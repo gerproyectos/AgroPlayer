@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Reproductor de Campañas</title>
   <script src="https://alcdn.msauth.net/browser/2.37.0/js/msal-browser.min.js"></script>
   <style>
@@ -37,14 +37,11 @@
     };
 
     const msalInstance = new msal.PublicClientApplication(msalConfig);
-
     const loginRequest = {
       scopes: ["Files.Read.All", "Sites.Read.All"]
     };
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const almacenFiltro = urlParams.get("almacen") || "Almacen 3";
-
+    const almacenFiltro = "Almacen 3"; // Aquí defines el almacén deseado
     const siteId = "agropaisas.sharepoint.com,0527bf98-e7a7-47c0-9898-e8ca7c2e8af1,12050814-194d-49d7-96b5-cc2db039a498";
     const driveId = "b!mL8nBafnwEeYmOjKfC6K8RQIBRJNGddJlrXMLbA5pJhoR4cvnojASLgEwedeeXXN";
 
@@ -63,16 +60,29 @@
     async function fetchDriveItems(token) {
       const endpoint = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/root/children?$expand=listItem&select=name,@microsoft.graph.downloadUrl,listItem`;
 
-      const res = await fetch(endpoint, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      try {
+        const res = await fetch(endpoint, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
 
-      const data = await res.json();
-
-      return data.value.filter(item => {
-        const fields = item.listItem?.fields;
-        return fields?.Almacen === almacenFiltro && item['@microsoft.graph.downloadUrl'];
-      });
+        const text = await res.text();
+        try {
+          const data = JSON.parse(text);
+          return data.value.filter(item => {
+            const fields = item.listItem?.fields;
+            return fields?.Almacen === almacenFiltro && item['@microsoft.graph.downloadUrl'];
+          });
+        } catch (parseError) {
+          console.error("Error al parsear JSON:", parseError);
+          console.log("Respuesta recibida:", text);
+          alert("Error al procesar la respuesta del servidor.");
+          return [];
+        }
+      } catch (networkError) {
+        console.error("Error al obtener archivos:", networkError);
+        alert("No se pudo obtener la lista de archivos.");
+        return [];
+      }
     }
 
     function startSlideshow(items) {
@@ -108,9 +118,8 @@
 
       showNext();
 
-      // Refrescar cada 10 minutos
       if (slideshowTimer) clearTimeout(slideshowTimer);
-      slideshowTimer = setTimeout(refreshSlideshow, 10 * 60 * 1000);
+      slideshowTimer = setTimeout(refreshSlideshow, 10 * 60 * 1000); // cada 10 min
     }
 
     async function refreshSlideshow() {
@@ -137,6 +146,8 @@
   </script>
 </body>
 </html>
+
+
 
 
 
