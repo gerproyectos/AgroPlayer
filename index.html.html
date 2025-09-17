@@ -54,10 +54,10 @@
       }
     }
 
-    const almacenFiltro = "Almacen 3"; // Aquí defines el almacén deseado
+const almacenFiltro = "Almacen 3"; // Aquí defines el almacén deseado
 
 async function fetchDriveItems(token) {
-  const endpoint = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/root/children?$expand=listItem($expand=fields)`;
+  const endpoint = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/root/children?$expand=listItem&select=name,@microsoft.graph.downloadUrl,listItem`;
 
   const res = await fetch(endpoint, {
     headers: { Authorization: `Bearer ${token}` }
@@ -135,5 +135,6 @@ async function fetchDriveItems(token) {
 </body>
 
 </html>
+
 
 
