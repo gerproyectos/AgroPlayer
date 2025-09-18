@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <title>Reproductor de Campañas</title>
   <script src="https://alcdn.msauth.net/browser/2.37.0/js/msal-browser.min.js"></script>
-  <link rel="icon" href="data:,">
   <style>
     html, body {
       margin: 0;
@@ -38,7 +37,11 @@
     };
 
     const msalInstance = new msal.PublicClientApplication(msalConfig);
-    const loginRequest = { scopes: ["Files.Read.All", "Sites.Read.All"] };
+
+    const loginRequest = {
+      scopes: ["Files.Read.All", "Sites.Read.All"]
+    };
+
     const almacenFiltro = "Almacen 3";
     const siteId = "agropaisas.sharepoint.com,0527bf98-e7a7-47c0-9898-e8ca7c2e8af1,12050814-194d-49d7-96b5-cc2db039a498";
     const driveId = "b!mL8nBafnwEeYmOjKfC6K8RQIBRJNGddJlrXMLbA5pJhoR4cvnojASLgEwedeeXXN";
@@ -52,12 +55,11 @@
         return response.accessToken;
       } catch (error) {
         console.error("Login error:", error);
-        return null;
       }
     }
 
     async function fetchDriveItems(token) {
-      const endpoint = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/root/children?$expand=listItem&select=name,@microsoft.graph.downloadUrl,listItem`;
+      const endpoint = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/root/children?$expand=listItem($expand=fields)&select=name,@microsoft.graph.downloadUrl,listItem`;
 
       const res = await fetch(endpoint, {
         headers: { Authorization: `Bearer ${token}` }
@@ -67,23 +69,20 @@
       try {
         data = await res.json();
       } catch (e) {
-        alert("Error al procesar la respuesta del servidor.");
-        console.error("JSON parse error:", e);
+        console.error("Error al parsear JSON:", e);
+        alert("Error al procesar los datos de SharePoint.");
         return [];
       }
 
       if (!data.value || !Array.isArray(data.value)) {
-        alert("No se encontraron archivos válidos.");
+        console.warn("Respuesta sin valor válido:", data);
         return [];
       }
 
+      // Filtrado seguro por metadato "Almacen"
       return data.value.filter(item => {
-        try {
-          const fields = item.listItem?.fields;
-          return fields?.Almacen === almacenFiltro && item['@microsoft.graph.downloadUrl'];
-        } catch (e) {
-          return false;
-        }
+        const fields = item?.listItem?.fields;
+        return fields?.Almacen === almacenFiltro && item['@microsoft.graph.downloadUrl'];
       });
     }
 
@@ -139,7 +138,7 @@
 
       const items = await fetchDriveItems(tokenGlobal);
       if (items.length === 0) {
-        alert("No se encontraron archivos con el filtro aplicado.");
+        alert("No se encontraron archivos para el almacén seleccionado.");
         return;
       }
 
@@ -150,3 +149,4 @@
   </script>
 </body>
 </html>
+
