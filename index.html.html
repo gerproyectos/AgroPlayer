@@ -28,8 +28,6 @@
   <div id="viewer"></div>
 
   <script>
-    const almacenFiltro = "Almacen 3"; // Cambia aquí según el almacén
-
     const msalConfig = {
       auth: {
         clientId: "f7a30705-5baa-43ab-8f5e-db6c98e6ebcb",
@@ -46,6 +44,7 @@
 
     const siteId = "agropaisas.sharepoint.com,0527bf98-e7a7-47c0-9898-e8ca7c2e8af1,12050814-194d-49d7-96b5-cc2db039a498";
     const driveId = "b!mL8nBafnwEeYmOjKfC6K8RQIBRJNGddJlrXMLbA5pJhoR4cvnojASLgEwedeeXXN";
+    const almacenFiltro = "Almacen 3";
 
     let tokenGlobal = null;
     let slideshowTimer = null;
@@ -56,47 +55,35 @@
         return response.accessToken;
       } catch (error) {
         console.error("Login error:", error);
-        alert("Error de autenticación.");
+        return null;
       }
     }
 
     async function fetchDriveItems(token) {
-      const endpoint = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/root/children`;
+      const endpoint = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/root/children?$expand=listItem($expand=fields)&select=name,@microsoft.graph.downloadUrl,listItem`;
+
       const res = await fetch(endpoint, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      const text = await res.text();
       let data;
       try {
-        data = JSON.parse(text);
+        data = await res.json();
       } catch (e) {
-        console.error("Error al parsear JSON:", e);
         alert("Error al procesar la respuesta del servidor.");
         return [];
       }
 
-      const archivos = data.value;
-      const filtrados = [];
-
-      for (const item of archivos) {
-        if (!item['@microsoft.graph.downloadUrl']) continue;
-
-        try {
-          const fieldsRes = await fetch(`https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/items/${item.id}/listItem/fields`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          const fields = await fieldsRes.json();
-
-          if (fields?.Almacen === almacenFiltro) {
-            filtrados.push(item);
-          }
-        } catch (error) {
-          console.warn("No se pudieron obtener los metadatos de:", item.name, error);
-        }
+      if (!data.value) {
+        alert("No se encontraron archivos o hubo un error en la respuesta.");
+        return [];
       }
 
-      return filtrados;
+      // Filtrar por metadato "Almacen"
+      return data.value.filter(item => {
+        const fields = item.listItem?.fields;
+        return fields?.Almacen === almacenFiltro && item['@microsoft.graph.downloadUrl'];
+      });
     }
 
     function startSlideshow(items) {
@@ -105,6 +92,8 @@
       let timeout = null;
 
       function showNext() {
+        if (items.length === 0) return;
+
         viewer.innerHTML = "";
         const item = items[index];
         const url = item['@microsoft.graph.downloadUrl'];
@@ -132,15 +121,14 @@
 
       showNext();
 
+      // Refrescar cada 10 minutos
       if (slideshowTimer) clearTimeout(slideshowTimer);
-      slideshowTimer = setTimeout(refreshSlideshow, 10 * 60 * 1000); // cada 10 min
+      slideshowTimer = setTimeout(refreshSlideshow, 10 * 60 * 1000);
     }
 
     async function refreshSlideshow() {
       const items = await fetchDriveItems(tokenGlobal);
-      if (items.length > 0) {
-        startSlideshow(items);
-      }
+      startSlideshow(items);
     }
 
     async function init() {
@@ -149,7 +137,7 @@
 
       const items = await fetchDriveItems(tokenGlobal);
       if (items.length === 0) {
-        alert("No se encontraron archivos para este almacén.");
+        alert("No se encontraron archivos con el filtro aplicado.");
         return;
       }
 
@@ -160,8 +148,6 @@
   </script>
 </body>
 </html>
-
-
 
 
 
