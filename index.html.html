@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Reproductor de Campañas</title>
   <script src="https://alcdn.msauth.net/browser/2.37.0/js/msal-browser.min.js"></script>
   <style>
@@ -55,11 +55,12 @@
         return response.accessToken;
       } catch (error) {
         console.error("Login error:", error);
+        return null;
       }
     }
 
     async function fetchDriveItems(token) {
-      const endpoint = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/root/children?$expand=listItem($expand=fields)&select=name,@microsoft.graph.downloadUrl,listItem`;
+      const endpoint = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/root/children?$expand=listItem&select=name,@microsoft.graph.downloadUrl`;
 
       const res = await fetch(endpoint, {
         headers: { Authorization: `Bearer ${token}` }
@@ -69,8 +70,8 @@
       try {
         data = await res.json();
       } catch (e) {
-        console.error("Error al parsear JSON:", e);
         alert("Error al procesar los datos de SharePoint.");
+        console.error("Error JSON:", e);
         return [];
       }
 
@@ -79,9 +80,9 @@
         return [];
       }
 
-      // Filtrado seguro por metadato "Almacen"
+      // Filtrar por metadato "Almacen"
       return data.value.filter(item => {
-        const fields = item?.listItem?.fields;
+        const fields = item.listItem?.fields;
         return fields?.Almacen === almacenFiltro && item['@microsoft.graph.downloadUrl'];
       });
     }
@@ -149,4 +150,3 @@
   </script>
 </body>
 </html>
-
