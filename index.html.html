@@ -37,16 +37,12 @@
     };
 
     const msalInstance = new msal.PublicClientApplication(msalConfig);
-
-    const loginRequest = {
-      scopes: ["Files.Read.All", "Sites.Read.All"]
-    };
-
+    const loginRequest = { scopes: ["Files.Read.All", "Sites.Read.All"] };
     const siteId = "agropaisas.sharepoint.com,0527bf98-e7a7-47c0-9898-e8ca7c2e8af1,12050814-194d-49d7-96b5-cc2db039a498";
     const driveId = "b!mL8nBafnwEeYmOjKfC6K8RQIBRJNGddJlrXMLbA5pJhoR4cvnojASLgEwedeeXXN";
 
     const params = new URLSearchParams(window.location.search);
-    const almacenFiltro = params.get("almacen") || params.get("Almacen");
+    const almacenFiltro = params.get("almacen");
 
     let tokenGlobal = null;
     let slideshowTimer = null;
@@ -81,10 +77,8 @@
         return [];
       }
 
-      // Filtrar por metadato "Almacen"
       return data.value.filter(item => {
         const fields = item.listItem?.fields;
-        console.log("Evaluando:", fields?.Almacen, "vs", almacenFiltro);
         return fields?.Almacen === almacenFiltro && item['@microsoft.graph.downloadUrl'];
       });
     }
@@ -96,7 +90,6 @@
 
       function showNext() {
         if (items.length === 0) return;
-
         viewer.innerHTML = "";
         const item = items[index];
         const url = item['@microsoft.graph.downloadUrl'];
@@ -123,8 +116,6 @@
       }
 
       showNext();
-
-      // Refrescar cada 10 minutos
       if (slideshowTimer) clearTimeout(slideshowTimer);
       slideshowTimer = setTimeout(refreshSlideshow, 10 * 60 * 1000);
     }
@@ -151,6 +142,7 @@
   </script>
 </body>
 </html>
+
 
 
 
