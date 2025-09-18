@@ -42,11 +42,9 @@
       scopes: ["Files.Read.All", "Sites.Read.All"]
     };
 
+    const almacenFiltro = "Almacen 3"; // Filtro fijo
     const siteId = "agropaisas.sharepoint.com,0527bf98-e7a7-47c0-9898-e8ca7c2e8af1,12050814-194d-49d7-96b5-cc2db039a498";
     const driveId = "b!mL8nBafnwEeYmOjKfC6K8RQIBRJNGddJlrXMLbA5pJhoR4cvnojASLgEwedeeXXN";
-
-    const params = new URLSearchParams(window.location.search);
-    const almacenFiltro = params.get("almacen");
 
     let tokenGlobal = null;
     let slideshowTimer = null;
@@ -57,34 +55,20 @@
         return response.accessToken;
       } catch (error) {
         console.error("Login error:", error);
-        return null;
       }
     }
 
     async function fetchDriveItems(token) {
-      const endpoint = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/root/children?$expand=listItem($expand=fields)&$select=name,@microsoft.graph.downloadUrl`;
-
+      const endpoint = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/root/children?$expand=listItem&select=name,@microsoft.graph.downloadUrl,listItem`;
       const res = await fetch(endpoint, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      let data;
-      try {
-        data = await res.json();
-      } catch (e) {
-        alert("Error al procesar la respuesta del servidor.");
-        return [];
-      }
-
-      if (!data.value) {
-        alert("No se encontraron archivos o hubo un error en la respuesta.");
-        return [];
-      }
+      const data = await res.json();
 
       return data.value.filter(item => {
         const fields = item.listItem?.fields;
-        const almacenItem = fields?.Almacen?.trim();
-        return almacenItem === almacenFiltro && item['@microsoft.graph.downloadUrl'];
+        return fields?.Almacen === almacenFiltro && item['@microsoft.graph.downloadUrl'];
       });
     }
 
@@ -94,8 +78,6 @@
       let timeout = null;
 
       function showNext() {
-        if (items.length === 0) return;
-
         viewer.innerHTML = "";
         const item = items[index];
         const url = item['@microsoft.graph.downloadUrl'];
@@ -130,7 +112,9 @@
 
     async function refreshSlideshow() {
       const items = await fetchDriveItems(tokenGlobal);
-      startSlideshow(items);
+      if (items.length > 0) {
+        startSlideshow(items);
+      }
     }
 
     async function init() {
@@ -139,7 +123,7 @@
 
       const items = await fetchDriveItems(tokenGlobal);
       if (items.length === 0) {
-        alert("No se encontraron archivos con el filtro aplicado.");
+        alert("No se encontraron archivos.");
         return;
       }
 
@@ -150,3 +134,5 @@
   </script>
 </body>
 </html>
+
+
