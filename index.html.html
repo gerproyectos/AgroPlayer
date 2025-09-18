@@ -44,9 +44,9 @@
 
     const siteId = "agropaisas.sharepoint.com,0527bf98-e7a7-47c0-9898-e8ca7c2e8af1,12050814-194d-49d7-96b5-cc2db039a498";
     const driveId = "b!mL8nBafnwEeYmOjKfC6K8RQIBRJNGddJlrXMLbA5pJhoR4cvnojASLgEwedeeXXN";
-    const params = new URLSearchParams(window.location.search);
-    const almacenFiltro = params.get("Almacen");
 
+    const params = new URLSearchParams(window.location.search);
+    const almacenFiltro = params.get("almacen") || params.get("Almacen");
 
     let tokenGlobal = null;
     let slideshowTimer = null;
@@ -84,6 +84,7 @@
       // Filtrar por metadato "Almacen"
       return data.value.filter(item => {
         const fields = item.listItem?.fields;
+        console.log("Evaluando:", fields?.Almacen, "vs", almacenFiltro);
         return fields?.Almacen === almacenFiltro && item['@microsoft.graph.downloadUrl'];
       });
     }
@@ -150,6 +151,7 @@
   </script>
 </body>
 </html>
+
 
 
 
